@@ -1,203 +1,236 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Renuka Gawande • Portfolio</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renuka Gawande • Portfolio</title>
 
-<style>
-:root{--bg:#ffffff;--card:#f9fafb;--text:#111827;--primary:#6366f1;--accent:#22c55e}
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
-body{background:var(--bg);color:var(--text)}
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-header{background:linear-gradient(270deg,#6366f1,#9333ea,#22c55e);background-size:600% 600%;animation:gradientMove 8s ease infinite;color:#fff;padding:80px 20px;text-align:center}
-@keyframes gradientMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    <style>
+        body {
+            font-family: Poppins;
+            margin: 0;
+            background: #f9fafb
+        }
 
-header img{width:140px;height:140px;border-radius:50%;border:4px solid #fff;margin-bottom:12px}
-nav{display:flex;justify-content:center;gap:20px;margin-top:15px;flex-wrap:wrap}
-nav a{color:#fff;text-decoration:none;font-weight:500}
+        header {
+            background: linear-gradient(270deg, #6366f1, #22c55e);
+            color: #fff;
+            padding: 60px;
+            text-align: center
+        }
 
-section{padding:60px 20px;max-width:1100px;margin:auto}
-h2{margin-bottom:25px;color:#6366f1}
+        section {
+            padding: 40px;
+            max-width: 1100px;
+            margin: auto
+        }
 
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px
+        }
 
-.card{background:linear-gradient(135deg,rgba(255,255,255,0.7),rgba(99,102,241,0.15));backdrop-filter:blur(12px);padding:20px;border-radius:20px;transition:.4s;border:1px solid rgba(255,255,255,0.3)}
-.card:hover{transform:translateY(-8px);box-shadow:0 15px 40px rgba(99,102,241,0.3)}
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1)
+        }
 
-.btn{display:inline-block;margin-top:12px;padding:10px 16px;background:linear-gradient(135deg,#22c55e,#4ade80);color:#000;text-decoration:none;border-radius:8px;font-weight:600}
+        .btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 14px;
+            background: #22c55e;
+            color: #000;
+            text-decoration: none;
+            border-radius: 6px
+        }
 
-.tabs{display:flex;gap:10px;margin-bottom:20px}
-.tab{padding:8px 16px;border-radius:20px;background:#1f2937;color:#fff;cursor:pointer}
-.tab.active{background:#6366f1}
-.hidden{display:none}
+        h2 {
+            color: #6366f1
+        }
 
-footer{text-align:center;padding:20px;background:#6366f1;color:#fff}
+        .btn-ios {
+            background: #000;
+            color: #fff;
+        }
 
-.whatsapp-btn{position:fixed;bottom:20px;right:20px;background:#25D366;color:white;border-radius:50px;padding:12px 18px;font-weight:bold;text-decoration:none}
-</style>
+        .btn-android {
+            background: #22c55e;
+            color: #000;
+        }
+    </style>
 
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzoTAKs5oUPokKDZWWBn0YjO7ORHFxE6ie294XnoqtxoCyXNKmvF4-O8v3Z56tXiRxi/exec";
-const PROXY = "https://api.allorigins.win/raw?url=";
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzoTAKs5oUPokKDZWWBn0YjO7ORHFxE6ie294XnoqtxoCyXNKmvF4-O8v3Z56tXiRxi/exec";
 
-async function fetchData(){
-  try{
-    let res;
+        // FETCH DATA
+        async function fetchData() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
 
-    // Try proxy first
-    try{
-      res = await fetch(PROXY + encodeURIComponent(API_URL));
-    }catch(e){
-      console.warn("Proxy failed", e);
-    }
+                renderApps(data);
+                renderBlogs(data);
+                renderData(data);
+                renderDashboard(data);
+                showBlogDetail(data);
+                showDataDetail(data);
+                showDashboardDetail(data);
 
-    // Fallback direct
+            } catch (err) {
+                console.error(err);
+                document.body.innerHTML = "<h2 style='color:red;text-align:center'>API Error</h2>";
+            }
+        }
 
-    if(!res || !res.ok){
-      res = await fetch(API_URL);
-    }
+        // APPS
+        function renderApps(list) {
+            const grid = document.getElementById("appsGrid");
+            const apps = list.filter(x => x.type === "ios" || x.type === "android");
 
-    if(!res.ok) throw new Error("Network error");
-
-    const text = await res.text();
-    const data = JSON.parse(text);
-
-    renderProjects(data);
-    renderBlogs(data);
-    renderBlogDetail(data);
-
-    const cvItem = data.find(p => p.type && p.type.toLowerCase() === 'cv');
-    if(cvItem){
-      document.getElementById("cvBtn").href = cvItem.link;
-    }
-
-  }catch(err){
-    console.error(err);
-    document.getElementById("iosGrid").innerHTML = "<p>API Error</p>";
-  }
-}
-
-function renderProjects(list){
-  const grid = document.getElementById("iosGrid");
-  grid.innerHTML="";
-
-  const items = list.filter(p=>{
-    if(!p.type) return false;
-    const t = String(p.type).toLowerCase().trim();
-    return t === 'ios';
-  });
-
-  if(items.length === 0){
-    grid.innerHTML = "<p>No iOS apps found</p>";
-    return;
-  }
-
-  items.forEach(p=>{
-    grid.innerHTML += `
+            grid.innerHTML = "";
+            apps.forEach(a => {
+                grid.innerHTML += `
       <div class="card">
-        <h4>${p.title || 'No Title'}</h4>
-        <p>${p.description || ''}</p>
-        ${p.link ? `<a class="btn" href="${p.link}" target="_blank">View</a>` : ''}
+        <h3>${a.title}</h3>
+        <p>${a.description}</p>
+        <a class="btn" href="${a.link}" target="_blank">Open</a>
       </div>`;
-  });
-}
+            });
+        }
 
-function renderBlogs(list){
-  const blogs = list.filter(p=>{
-    if(!p.type) return false;
-    return String(p.type).toLowerCase().trim()==='blog';
-  });
+        // BLOG LIST
+        function renderBlogs(list) {
+            const grid = document.getElementById("blogGrid");
+            const blogs = list.filter(x => x.type === "blog");
 
-  const grid = document.getElementById("blogGrid");
-  grid.innerHTML = "";
-
-  if(blogs.length===0) return;
-
-  document.getElementById("blogNav").style.display="inline";
-
-  blogs.forEach(b=>{
-    grid.innerHTML += `
+            grid.innerHTML = "";
+            blogs.forEach(b => {
+                grid.innerHTML += `
       <div class="card">
-        <h4>${b.title || ''}</h4>
-        <p>${b.description || ''}</p>
-        <a class="btn" href="?blog=${encodeURIComponent(b.title)}">Read</a>
+        <h3>${b.title}</h3>
+        <p>${b.description}</p>
+        <a class="btn" href="?blog=${encodeURIComponent(b.Link)}">Read</a>
       </div>`;
-  });
-}
+            });
+        }
 
-function renderBlogDetail(list){
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("blog");
-  if(!id) return;
+        // DATA LIST
+        function renderData(list) {
+            const grid = document.getElementById("dataGrid");
+            const data = list.filter(x => x.type === "data");
 
-  const blog = list.find(b=>encodeURIComponent(b.title)===id);
-  if(!blog) return;
+            grid.innerHTML = "";
+            data.forEach(d => {
+                grid.innerHTML += `
+      <div class="card">
+        <h3>${d.title}</h3>
+        <p>${d.description}</p>
+        <a class="btn" href="?data=${encodeURIComponent(d.title)}">View</a>
+      </div>`;
+            });
+        }
 
-  document.body.innerHTML = `<div style="padding:40px"><h1>${blog.title}</h1><p>${blog.description}</p></div>`;
-}
+        // Dashboard LIST
+        function renderDashboard(list) {
+            const grid = document.getElementById("dashboardGrid");
+            const data = list.filter(x => x.type === "dashboard");
 
-function showTab(e,id){
-  document.querySelectorAll('.tab-content').forEach(el=>el.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
-  e.target.classList.add('active');
-}
+            grid.innerHTML = "";
+            data.forEach(d => {
+                grid.innerHTML += `
+      <div class="card">
+        <h3>${d.title}</h3>
+        <p>${d.description}</p>
+        <a class="btn" href="?data=${encodeURIComponent(d.title)}">View</a>
+      </div>`;
+            });
+        }
 
-// TESTS
-function runTests(){
-  console.assert(typeof fetchData === 'function','fetchData exists');
-  console.assert(typeof renderProjects === 'function','renderProjects exists');
-}
+        // BLOG DETAIL
+        function showBlogDetail(list) {
+            const id = new URLSearchParams(window.location.search).get("blog");
+            if (!id) return;
 
-window.addEventListener("DOMContentLoaded", ()=>{
-  runTests();
-  fetchData();
-});
-</script>
+            const blog = list.find(x => encodeURIComponent(x.title) === id);
+            if (!blog) return;
+
+            document.body.innerHTML = `
+    <section>
+      <h1>${blog.title}</h1>
+      <p>${blog.description}</p>
+    </section>`;
+        }
+
+        // DATA DETAIL
+        function showDataDetail(list) {
+            const id = new URLSearchParams(window.location.search).get("data");
+            if (!id) return;
+
+            const item = list.find(x => encodeURIComponent(x.title) === id);
+            if (!item) return;
+
+            document.body.innerHTML = `
+    <section>
+      <h1>${item.title}</h1>
+      <p>${item.description}</p>
+      <a href="${item.link}" target="_blank">Open Dashboard</a>
+    </section>`;
+        }
+
+        // Dashboard DETAIL
+        function showDashboardDetail(list) {
+            const id = new URLSearchParams(window.location.search).get("data");
+            if (!id) return;
+
+            const item = list.find(x => encodeURIComponent(x.title) === id);
+            if (!item) return;
+
+            document.body.innerHTML = `
+    <section>
+      <h1>${item.title}</h1>
+      <p>${item.description}</p>
+      <a href="${item.link}" target="_blank">Open Dashboard</a>
+    </section>`;
+        }
+
+        window.onload = fetchData;
+    </script>
 </head>
 
 <body>
 
-<header>
-<img src="renuka-profile.png" />
-<h1>Renuka Gawande</h1>
-<p>MIS • Data Analyst • App Developer</p>
+    <header>
+        <h1>Renuka Gawande</h1>
+        <p>Portfolio Dashboard</p>
+    </header>
 
-<nav>
-<a href="#about">About</a>
-<a href="#apps">Apps</a>
-<a id="blogNav" href="#blog" style="display:none">Blog</a>
-</nav>
-</header>
+    <section>
+        <h2>📱 Apps </h2>
+        <div class="grid" id="appsGrid"></div>
+    </section>
 
-<section style="text-align:center">
-<a class="btn" id="cvBtn">Download CV</a>
-</section>
+    <section>
+        <h2>📊 Data </h2>
+        <div class="grid" id="dataGrid"></div>
+    </section>
 
-<section id="apps">
-<div class="tabs">
-<div class="tab active" onclick="showTab(event,'ios')">iOS</div>
-<div class="tab" onclick="showTab(event,'android')">Android</div>
-</div>
+    <section>
+        <h2>📊 Dashboard </h2>
+        <div class="grid" id="dashboardGrid"></div>
+    </section>
 
-<div id="ios" class="tab-content">
-<div class="grid" id="iosGrid"></div>
-</div>
-
-<div id="android" class="tab-content hidden">
-<p>Android apps here</p>
-</div>
-</section>
-
-<section id="blog">
-<div class="grid" id="blogGrid"></div>
-</section>
-
-<footer>© 2026</footer>
-
-<a class="whatsapp-btn" href="https://wa.me/919408486469">WhatsApp</a>
+    <section>
+        <h2>✍️ Blog </h2>
+        <div class="grid" id="blogGrid"></div>
+    </section>
 
 </body>
+
 </html>
