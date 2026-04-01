@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Renuka Gawande • Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{--bg:#ffffff;--card:#f9fafb;--text:#111827;--primary:#6366f1;--accent:#22c55e}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+body{background:var(--bg);color:var(--text)}
+
+header{background:linear-gradient(270deg,#6366f1,#9333ea,#22c55e);background-size:600% 600%;animation:gradientMove 8s ease infinite;color:#fff;padding:80px 20px;text-align:center}
+@keyframes gradientMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+header img{width:140px;height:140px;border-radius:50%;border:4px solid #fff;margin-bottom:12px}
+nav{display:flex;justify-content:center;gap:20px;margin-top:15px;flex-wrap:wrap}
+nav a{color:#fff;text-decoration:none;font-weight:500}
+
+section{padding:60px 20px;max-width:1100px;margin:auto}
+h2{margin-bottom:25px;color:#6366f1}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+
+.card{background:linear-gradient(135deg,rgba(255,255,255,0.7),rgba(99,102,241,0.15));backdrop-filter:blur(12px);padding:20px;border-radius:20px;transition:.4s;border:1px solid rgba(255,255,255,0.3)}
+.card:hover{transform:translateY(-8px);box-shadow:0 15px 40px rgba(99,102,241,0.3)}
+
+.btn{display:inline-block;margin-top:12px;padding:10px 16px;background:linear-gradient(135deg,#22c55e,#4ade80);color:#000;text-decoration:none;border-radius:8px;font-weight:600}
+
+.tabs{display:flex;gap:10px;margin-bottom:20px}
+.tab{padding:8px 16px;border-radius:20px;background:#1f2937;color:#fff;cursor:pointer}
+.tab.active{background:#6366f1}
+.hidden{display:none}
+
+footer{text-align:center;padding:20px;background:#6366f1;color:#fff}
+
+.whatsapp-btn{position:fixed;bottom:20px;right:20px;background:#25D366;color:white;border-radius:50px;padding:12px 18px;font-weight:bold;text-decoration:none}
+</style>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzoTAKs5oUPokKDZWWBn0YjO7ORHFxE6ie294XnoqtxoCyXNKmvF4-O8v3Z56tXiRxi/exec";
+const PROXY = "https://api.allorigins.win/raw?url=";
+
+async function fetchData(){
+  try{
+    let res;
+
+    // Try proxy first
+    try{
+      res = await fetch(PROXY + encodeURIComponent(API_URL));
+    }catch(e){
+      console.warn("Proxy failed", e);
+    }
+
+    // Fallback direct
+
+    if(!res || !res.ok){
+      res = await fetch(API_URL);
+    }
+
+    if(!res.ok) throw new Error("Network error");
+
+    const text = await res.text();
+    const data = JSON.parse(text);
+
+    renderProjects(data);
+    renderBlogs(data);
+    renderBlogDetail(data);
+
+    const cvItem = data.find(p => p.type && p.type.toLowerCase() === 'cv');
+    if(cvItem){
+      document.getElementById("cvBtn").href = cvItem.link;
+    }
+
+  }catch(err){
+    console.error(err);
+    document.getElementById("iosGrid").innerHTML = "<p>API Error</p>";
+  }
+}
+
+function renderProjects(list){
+  const grid = document.getElementById("iosGrid");
+  grid.innerHTML="";
+
+  const items = list.filter(p=>{
+    if(!p.type) return false;
+    const t = String(p.type).toLowerCase().trim();
+    return t === 'ios';
+  });
+
+  if(items.length === 0){
+    grid.innerHTML = "<p>No iOS apps found</p>";
+    return;
+  }
+
+  items.forEach(p=>{
+    grid.innerHTML += `
+      <div class="card">
+        <h4>${p.title || 'No Title'}</h4>
+        <p>${p.description || ''}</p>
+        ${p.link ? `<a class="btn" href="${p.link}" target="_blank">View</a>` : ''}
+      </div>`;
+  });
+}
+
+function renderBlogs(list){
+  const blogs = list.filter(p=>{
+    if(!p.type) return false;
+    return String(p.type).toLowerCase().trim()==='blog';
+  });
+
+  const grid = document.getElementById("blogGrid");
+  grid.innerHTML = "";
+
+  if(blogs.length===0) return;
+
+  document.getElementById("blogNav").style.display="inline";
+
+  blogs.forEach(b=>{
+    grid.innerHTML += `
+      <div class="card">
+        <h4>${b.title || ''}</h4>
+        <p>${b.description || ''}</p>
+        <a class="btn" href="?blog=${encodeURIComponent(b.title)}">Read</a>
+      </div>`;
+  });
+}
+
+function renderBlogDetail(list){
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("blog");
+  if(!id) return;
+
+  const blog = list.find(b=>encodeURIComponent(b.title)===id);
+  if(!blog) return;
+
+  document.body.innerHTML = `<div style="padding:40px"><h1>${blog.title}</h1><p>${blog.description}</p></div>`;
+}
+
+function showTab(e,id){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  e.target.classList.add('active');
+}
+
+// TESTS
+function runTests(){
+  console.assert(typeof fetchData === 'function','fetchData exists');
+  console.assert(typeof renderProjects === 'function','renderProjects exists');
+}
+
+window.addEventListener("DOMContentLoaded", ()=>{
+  runTests();
+  fetchData();
+});
+</script>
+</head>
+
+<body>
+
+<header>
+<img src="renuka-profile.png" />
+<h1>Renuka Gawande</h1>
+<p>MIS • Data Analyst • App Developer</p>
+
+<nav>
+<a href="#about">About</a>
+<a href="#apps">Apps</a>
+<a id="blogNav" href="#blog" style="display:none">Blog</a>
+</nav>
+</header>
+
+<section style="text-align:center">
+<a class="btn" id="cvBtn">Download CV</a>
+</section>
+
+<section id="apps">
+<div class="tabs">
+<div class="tab active" onclick="showTab(event,'ios')">iOS</div>
+<div class="tab" onclick="showTab(event,'android')">Android</div>
+</div>
+
+<div id="ios" class="tab-content">
+<div class="grid" id="iosGrid"></div>
+</div>
+
+<div id="android" class="tab-content hidden">
+<p>Android apps here</p>
+</div>
+</section>
+
+<section id="blog">
+<div class="grid" id="blogGrid"></div>
+</section>
+
+<footer>© 2026</footer>
+
+<a class="whatsapp-btn" href="https://wa.me/919408486469">WhatsApp</a>
+
+</body>
+</html>
