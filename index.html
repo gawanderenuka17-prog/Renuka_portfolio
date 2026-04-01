@@ -89,6 +89,12 @@
             }
         }
 
+        const cvItem = data.find(p => p.type && p.type.toLowerCase() === 'cv');
+
+          if(cvItem){
+              document.getElementById("cvBtn").href = cvItem.link;
+              }
+
         // APPS
         function renderApps(list) {
             const grid = document.getElementById("appsGrid");
@@ -209,6 +215,9 @@
     <header>
         <h1>Renuka Gawande</h1>
         <p>Portfolio Dashboard</p>
+            <div style="text-align:right">
+  <a class="btn" id="cvBtn" target="_blank">📄 Download CV</a>
+</div>
     </header>
 
     <section>
