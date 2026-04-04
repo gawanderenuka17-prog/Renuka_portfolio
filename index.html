@@ -9,71 +9,46 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        body {
-            font-family: Poppins;
-            margin: 0;
-            background: #f9fafb
-        }
-
-        header {
-            background: linear-gradient(270deg, #6366f1, #22c55e);
-            color: #fff;
-            padding: 60px;
-            text-align: center
-        }
-
-        section {
-            padding: 40px;
-            max-width: 1100px;
-            margin: auto
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px
-        }
-
-        .card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1)
-        }
-
-        .btn {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 14px;
-            background: #22c55e;
-            color: #000;
-            text-decoration: none;
-            border-radius: 6px
-        }
-
-        h2 {
-            color: #6366f1
-        }
-
-        .btn-ios {
-            background: #000;
-            color: #fff;
-        }
-
-        .btn-android {
-            background: #22c55e;
-            color: #000;
-        }
+        body { font-family: Poppins; margin: 0; background: #f9fafb }
+        header { background: linear-gradient(270deg, #6366f1, #22c55e); color: #fff; padding: 60px; text-align: center }
+        section { padding: 40px; max-width: 1100px; margin: auto }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px }
+        .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1) }
+        .btn { display:inline-block;margin-top:10px;padding:8px 14px;background:#22c55e;color:#000;text-decoration:none;border-radius:6px }
+        h2 { color:#6366f1 }
+        .topbar { display:flex; justify-content:flex-end; margin-top:10px }
+        .filter-btn { margin:5px;padding:6px 12px;border-radius:6px;border:none;cursor:pointer }
+        .active { background:#6366f1;color:white }
+        .error { color:red; text-align:center }
     </style>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzoTAKs5oUPokKDZWWBn0YjO7ORHFxE6ie294XnoqtxoCyXNKmvF4-O8v3Z56tXiRxi/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxEiKJQs2-tmTfO0ybtyGbRtA72iaaDrENGUXDsYua44s9PsmBg2ENsxvFYNi8B-Mia/exec";
+        let globalData = [];
 
-        // FETCH DATA
         async function fetchData() {
             try {
-                const res = await fetch(API_URL);
-                const data = await res.json();
+                const res = await fetch(API_URL, { method: "GET" });
+
+                if (!res.ok) {
+                    throw new Error("Network response not ok: " + res.status);
+                }
+
+                const text = await res.text();
+                console.log("RAW RESPONSE:", text);
+
+                let json;
+                try {
+                    json = JSON.parse(text);
+                    if (typeof json === "string") json = JSON.parse(json);
+                } catch (e) {
+                    throw new Error("Invalid JSON from API");
+                }
+
+                const data = Array.isArray(json) ? json : json.data || json;
+                if (!Array.isArray(data)) throw new Error("Invalid API format");
+
+                globalData = data;
 
                 renderApps(data);
                 renderBlogs(data);
@@ -81,165 +56,122 @@
                 renderDashboard(data);
                 showBlogDetail(data);
                 showDataDetail(data);
-                showDashboardDetail(data);
+
+                const cvItem = data.find(x => x.type?.toLowerCase() === "cv");
+                if (cvItem) document.getElementById("cvBtn").href = cvItem.link;
 
             } catch (err) {
-                console.error(err);
-                document.body.innerHTML = "<h2 style='color:red;text-align:center'>API Error</h2>";
+                console.error("FETCH ERROR:", err);
+
+                // 🔥 fallback demo data (so UI still works)
+                const fallback = [
+                    { type: "ios", title: "Demo iOS App", description: "Sample app", link: "#" },
+                    { type: "android", title: "Demo Android App", description: "Sample app", link: "#" },
+                    { type: "blog", title: "Demo Blog", description: "Sample blog" },
+                    { type: "data", title: "Demo Data", description: "Sample data", link: "#" },
+                    { type: "dashboard", title: "Demo Dashboard", description: "Sample dashboard", link: "#" }
+                ];
+
+                globalData = fallback;
+
+                renderApps(fallback);
+                renderBlogs(fallback);
+                renderData(fallback);
+                renderDashboard(fallback);
+
+                document.body.insertAdjacentHTML("afterbegin",
+                    `<p class="error">API failed to load. Showing demo data.</p>`
+                );
             }
         }
 
-        const cvItem = data.find(p => p.type && p.type.toLowerCase() === 'cv');
+        function normalize(type){ return type?.toLowerCase().trim(); }
 
-          if(cvItem){
-              document.getElementById("cvBtn").href = cvItem.link;
-              }
-
-        // APPS
-        function renderApps(list) {
-            const grid = document.getElementById("appsGrid");
-            const apps = list.filter(x => x.type === "ios" || x.type === "android");
-
-            grid.innerHTML = "";
-            apps.forEach(a => {
-                grid.innerHTML += `
-      <div class="card">
-        <h3>${a.title}</h3>
-        <p>${a.description}</p>
-        <a class="btn" href="${a.link}" target="_blank">Open</a>
-      </div>`;
-            });
+        function renderApps(list, filter="all"){
+            const grid=document.getElementById("appsGrid"); if(!grid) return;
+            let apps=list.filter(x=>["ios","android"].includes(normalize(x.type)));
+            if(filter!=="all") apps=apps.filter(x=>normalize(x.type)===filter);
+            grid.innerHTML=apps.map(a=>`<div class="card"><h3>${a.title}</h3><p>${a.description}</p><a class="btn" href="${a.link}" target="_blank">Open</a></div>`).join("");
         }
 
-        // BLOG LIST
-        function renderBlogs(list) {
-            const grid = document.getElementById("blogGrid");
-            const blogs = list.filter(x => x.type === "blog");
-
-            grid.innerHTML = "";
-            blogs.forEach(b => {
-                grid.innerHTML += `
-      <div class="card">
-        <h3>${b.title}</h3>
-        <p>${b.description}</p>
-        <a class="btn" href="?blog=${encodeURIComponent(b.link)}">Read</a>
-      </div>`;
-            });
+        function renderBlogs(list){
+            const grid=document.getElementById("blogGrid"); if(!grid) return;
+            const blogs=list.filter(x=>normalize(x.type)==="blog");
+            grid.innerHTML=blogs.map(b=>`<div class="card"><h3>${b.title}</h3><p>${b.description}</p><a class="btn" href="?blog=${encodeURIComponent(b.title)}">Read</a></div>`).join("");
         }
 
-        // DATA LIST
-        function renderData(list) {
-            const grid = document.getElementById("dataGrid");
-            const data = list.filter(x => x.type === "data");
-
-            grid.innerHTML = "";
-            data.forEach(d => {
-                grid.innerHTML += `
-      <div class="card">
-        <h3>${d.title}</h3>
-        <p>${d.description}</p>
-        <a class="btn" href="?data=${encodeURIComponent(d.title)}">View</a>
-      </div>`;
-            });
+        function renderData(list){
+            const grid=document.getElementById("dataGrid"); if(!grid) return;
+            const items=list.filter(x=>normalize(x.type)==="data");
+            grid.innerHTML=items.map(d=>`<div class="card"><h3>${d.title}</h3><p>${d.description}</p><a class="btn" href="?data=${encodeURIComponent(d.title)}">View</a></div>`).join("");
         }
 
-        // Dashboard LIST
-        function renderDashboard(list) {
-            const grid = document.getElementById("dashboardGrid");
-            const data = list.filter(x => x.type === "dashboard");
-
-            grid.innerHTML = "";
-            data.forEach(d => {
-                grid.innerHTML += `
-      <div class="card">
-        <h3>${d.title}</h3>
-        <p>${d.description}</p>
-        <a class="btn" href="?data=${encodeURIComponent(d.title)}">View</a>
-      </div>`;
-            });
+        function renderDashboard(list){
+            const grid=document.getElementById("dashboardGrid"); if(!grid) return;
+            const items=list.filter(x=>normalize(x.type)==="dashboard");
+            grid.innerHTML=items.map(d=>`<div class="card"><h3>${d.title}</h3><p>${d.description}</p><a class="btn" href="${d.link}" target="_blank">Open</a></div>`).join("");
         }
 
-        // BLOG DETAIL
-        function showBlogDetail(list) {
-            const id = new URLSearchParams(window.location.search).get("blog");
-            if (!id) return;
-
-            const blog = list.find(x => encodeURIComponent(x.title) === id);
-            if (!blog) return;
-
-            document.body.innerHTML = `
-    <section>
-      <h1>${blog.title}</h1>
-      <p>${blog.description}</p>
-    </section>`;
+        function showBlogDetail(list){
+            const id=new URLSearchParams(location.search).get("blog");
+            if(!id) return;
+            const blog=list.find(x=>encodeURIComponent(x.title)===id);
+            if(!blog) return;
+            document.body.innerHTML=`<section><h1>${blog.title}</h1><p>${blog.description}</p></section>`;
         }
 
-        // DATA DETAIL
-        function showDataDetail(list) {
-            const id = new URLSearchParams(window.location.search).get("data");
-            if (!id) return;
-
-            const item = list.find(x => encodeURIComponent(x.title) === id);
-            if (!item) return;
-
-            document.body.innerHTML = `
-    <section>
-      <h1>${item.title}</h1>
-      <p>${item.description}</p>
-      <a href="${item.link}" target="_blank">Open Dashboard</a>
-    </section>`;
+        function showDataDetail(list){
+            const id=new URLSearchParams(location.search).get("data");
+            if(!id) return;
+            const item=list.find(x=>encodeURIComponent(x.title)===id);
+            if(!item) return;
+            document.body.innerHTML=`<section><h1>${item.title}</h1><p>${item.description}</p><a href="${item.link}" target="_blank">Open</a></section>`;
         }
 
-        // Dashboard DETAIL
-        function showDashboardDetail(list) {
-            const id = new URLSearchParams(window.location.search).get("data");
-            if (!id) return;
-
-            const item = list.find(x => encodeURIComponent(x.title) === id);
-            if (!item) return;
-
-            document.body.innerHTML = `
-    <section>
-      <h1>${item.title}</h1>
-      <p>${item.description}</p>
-      <a href="${item.link}" target="_blank">Open Dashboard</a>
-    </section>`;
+        function filterApps(type,btn){
+            document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            renderApps(globalData,type);
         }
 
-        window.onload = fetchData;
+        document.addEventListener("DOMContentLoaded", fetchData);
     </script>
 </head>
 
 <body>
 
-    <header>
-        <h1>Renuka Gawande</h1>
-        <p>Portfolio Dashboard</p>
-            <div style="text-align:right">
-  <a class="btn" id="cvBtn" target="_blank">📄 Download CV</a>
-</div>
-    </header>
+<header>
+    <h1>Renuka Gawande</h1>
+    <p>Portfolio Dashboard</p>
+    <div class="topbar">
+        <a class="btn" id="cvBtn" target="_blank">📄 Download CV</a>
+    </div>
+</header>
 
-    <section>
-        <h2>📱 Apps </h2>
-        <div class="grid" id="appsGrid"></div>
-    </section>
+<section>
+    <h2>📱 Apps</h2>
+    <div>
+        <button class="filter-btn active" onclick="filterApps('all', this)">All</button>
+        <button class="filter-btn" onclick="filterApps('ios', this)">iOS</button>
+        <button class="filter-btn" onclick="filterApps('android', this)">Android</button>
+    </div>
+    <div class="grid" id="appsGrid"></div>
+</section>
 
-    <section>
-        <h2>📊 Data </h2>
-        <div class="grid" id="dataGrid"></div>
-    </section>
+<section>
+    <h2>📊 Data</h2>
+    <div class="grid" id="dataGrid"></div>
+</section>
 
-    <section>
-        <h2>📊 Dashboard </h2>
-        <div class="grid" id="dashboardGrid"></div>
-    </section>
+<section>
+    <h2>📊 Dashboard</h2>
+    <div class="grid" id="dashboardGrid"></div>
+</section>
 
-    <section>
-        <h2>✍️ Blog </h2>
-        <div class="grid" id="blogGrid"></div>
-    </section>
+<section>
+    <h2>✍️ Blog</h2>
+    <div class="grid" id="blogGrid"></div>
+</section>
 
 </body>
-
 </html>
