@@ -130,7 +130,7 @@
         // DATA LIST
         function renderData(list) {
             const grid = document.getElementById("dataGrid");
-            const data = list.filter(x => x.type === "data");
+            const data = list.filter(x => x.type === "dataanalysis");
 
             grid.innerHTML = "";
             data.forEach(d => {
@@ -176,7 +176,7 @@
 
         // DATA DETAIL
         function showDataDetail(list) {
-            const id = new URLSearchParams(window.location.search).get("data");
+            const id = new URLSearchParams(window.location.search).get("dataanalysis");
             if (!id) return;
 
             const item = list.find(x => encodeURIComponent(x.title) === id);
@@ -192,7 +192,7 @@
 
         // Dashboard DETAIL
         function showDashboardDetail(list) {
-            const id = new URLSearchParams(window.location.search).get("data");
+            const id = new URLSearchParams(window.location.search).get("dataanalysis");
             if (!id) return;
 
             const item = list.find(x => encodeURIComponent(x.title) === id);
